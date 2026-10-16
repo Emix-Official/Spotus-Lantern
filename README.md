@@ -84,6 +84,19 @@ You can calibrate and test this live in the studio dashboard via the **Test Red*
 
 > **Important**: Bluetooth Low Energy controllers only pair with one host at a time. Make sure the Lotus Lantern mobile app is fully closed or Bluetooth is toggled off on your phone.
 
+### Deploying the web app to Vercel
+
+Import this repository into Vercel with the project root as the **Root Directory**. No build command or output directory is required; this is a static HTML application. The native `python_bridge` is intentionally excluded from the Vercel upload because it is a desktop-only Windows service, not a serverless function.
+
+After deployment:
+
+1. Copy the HTTPS deployment URL, for example `https://spotus-lantern.vercel.app/`.
+2. Add that exact URL as a Redirect URI in the Spotify Developer Dashboard.
+3. Open the HTTPS URL in Chrome or Edge.
+4. Enter the Spotify Client ID and click **Connect Spotify**.
+
+Use the HTTPS deployment URL for Web Bluetooth and Spotify OAuth. Run the Python bridge separately on the Windows machine when using native WASAPI loopback.
+
 ### Spotify setup
 
 The **Spotify / PC** audio source captures sound with the browser's display-sharing dialog. When sharing a Spotify tab or desktop, enable **Share audio** (or **Also share system audio**) in that dialog. Spotify OAuth is optional and only supplies currently-playing metadata and album artwork.
@@ -92,7 +105,7 @@ To enable the **Connect Spotify** button:
 
 1. Create an app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
 2. Copy its Client ID into the Client ID field in Spotus Lantern.
-3. Add the exact URL shown in the browser address bar as a Redirect URI (for example, `http://localhost:3000/`).
+3. Add the exact URL shown in the browser address bar as a Redirect URI (for example, `http://localhost:3000/` locally or your HTTPS Vercel URL after deployment).
 4. Click **Connect Spotify**. If no Client ID is configured, use **Demo Track** or the **Spotify / PC** audio source without OAuth.
 
 If the browser reports that Bluetooth is unavailable, confirm that the page is served from `http://localhost` or HTTPS, Bluetooth is enabled in Windows, and the phone app is disconnected. A controller can reject a second connection even when Windows can see it.

@@ -1,0 +1,7 @@
+python_bridge/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+ENV/
