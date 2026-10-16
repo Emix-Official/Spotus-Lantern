@@ -21,6 +21,7 @@ class SpotusSpotifyManager {
     this.onTrackChange = null;
     this.onPaletteExtracted = null;
     this.onAuthStatusChange = null;
+    this.onAuthError = null;
 
     // Check if returning from Spotify OAuth redirect
     this._checkAuthRedirect();
@@ -77,7 +78,10 @@ class SpotusSpotifyManager {
     const codeVerifier = localStorage.getItem('spotus_spotify_verifier');
     const redirectUri = localStorage.getItem('spotus_spotify_redirect') || (window.location.origin + window.location.pathname);
 
-    if (!codeVerifier || !this.clientId) return;
+    if (!codeVerifier || !this.clientId) {
+      console.warn('Spotify returned an authorization code, but the verifier or Client ID is missing.');
+      return;
+    }
 
     try {
       const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -93,6 +97,9 @@ class SpotusSpotifyManager {
       });
 
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error_description || 'Spotify token exchange was rejected.');
+      }
       if (data.access_token) {
         this.accessToken = data.access_token;
         this.tokenExpiry = Date.now() + (data.expires_in * 1000);
@@ -107,6 +114,9 @@ class SpotusSpotifyManager {
       }
     } catch (err) {
       console.error('Spotify token exchange failed:', err);
+      if (typeof this.onAuthError === 'function') {
+        this.onAuthError(err);
+      }
     }
   }
 
@@ -185,7 +195,7 @@ class SpotusSpotifyManager {
         }
       }
     } catch (e) {
-      // Polling network error
+      console.warn('Spotify playback polling failed:', e);
     }
   }
 

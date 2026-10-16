@@ -256,16 +256,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnSpotifyAuth.addEventListener('click', () => {
+  btnSpotifyAuth.addEventListener('click', async () => {
     if (window.spotusSpotify.isAuthorized()) {
       window.spotusSpotify.logout();
       btnSpotifyAuth.textContent = 'Connect Spotify';
       showToast('Logged out of Spotify');
     } else {
       try {
-        window.spotusSpotify.loginWithSpotify();
+        btnSpotifyAuth.disabled = true;
+        await window.spotusSpotify.loginWithSpotify();
       } catch (err) {
-        showToast(err.message);
+        showToast(err.message || 'Could not start Spotify login');
+      } finally {
+        btnSpotifyAuth.disabled = false;
       }
     }
   });
@@ -277,6 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.spotusSpotify.onAuthStatusChange = (isAuthed) => {
     btnSpotifyAuth.textContent = isAuthed ? 'Disconnect Spotify' : 'Connect Spotify';
+  };
+
+  window.spotusSpotify.onAuthError = (err) => {
+    showToast(err.message || 'Spotify authorization failed');
   };
 
   window.spotusSpotify.onTrackChange = (track) => {

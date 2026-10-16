@@ -72,17 +72,30 @@ You can calibrate and test this live in the studio dashboard via the **Test Red*
 
 ### Method 1: Web Studio (Recommended)
 
-1. Open `index.html` in a Web Bluetooth-enabled browser (**Google Chrome** or **Microsoft Edge**).
-2. For optimal permissions, serve the folder over a local server:
+1. Use **Google Chrome** or **Microsoft Edge**. Web Bluetooth and display-audio capture do not work reliably from `file://`.
+2. Serve the folder over a local server:
    ```bash
    npx serve .
    # Or using Python:
    python -m http.server 3000
    ```
 3. Navigate to `http://localhost:3000` in Chrome/Edge.
-4. Click **Connect Lights**, select your `ELK-BLEDOM` or `Lotus` device from the Bluetooth dialog, and enjoy synchronized Spotify illumination.
+4. Click **Connect Lights**, select your `ELK-BLEDOM`, `Lotus`, `MELK`, or compatible LED device from the Bluetooth dialog, and enjoy synchronized Spotify illumination.
 
 > **Important**: Bluetooth Low Energy controllers only pair with one host at a time. Make sure the Lotus Lantern mobile app is fully closed or Bluetooth is toggled off on your phone.
+
+### Spotify setup
+
+The **Spotify / PC** audio source captures sound with the browser's display-sharing dialog. When sharing a Spotify tab or desktop, enable **Share audio** (or **Also share system audio**) in that dialog. Spotify OAuth is optional and only supplies currently-playing metadata and album artwork.
+
+To enable the **Connect Spotify** button:
+
+1. Create an app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+2. Copy its Client ID into the Client ID field in Spotus Lantern.
+3. Add the exact URL shown in the browser address bar as a Redirect URI (for example, `http://localhost:3000/`).
+4. Click **Connect Spotify**. If no Client ID is configured, use **Demo Track** or the **Spotify / PC** audio source without OAuth.
+
+If the browser reports that Bluetooth is unavailable, confirm that the page is served from `http://localhost` or HTTPS, Bluetooth is enabled in Windows, and the phone app is disconnected. A controller can reject a second connection even when Windows can see it.
 
 ---
 
@@ -95,6 +108,8 @@ cd python_bridge
 pip install -r requirements.txt
 python bridge.py --color-order GBR
 ```
+
+If discovery fails with `Thread is configured for Windows GUI but callbacks are not working`, update Bleak from `python_bridge/requirements.txt` and run the bridge from a normal PowerShell window. The bridge starts its WinRT work on a fresh MTA-compatible thread. If no loopback device is selected, list devices with `python -c "import sounddevice as sd; print(sd.query_devices())"` and pass its index using `--device-index`.
 
 ---
 

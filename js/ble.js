@@ -79,7 +79,7 @@ class LotusBLEController {
   }
 
   isSupported() {
-    return !!(navigator && navigator.bluetooth);
+    return typeof navigator !== 'undefined' && !!navigator.bluetooth;
   }
 
   async connect() {
@@ -150,8 +150,20 @@ class LotusBLEController {
     } catch (err) {
       this.isConnecting = false;
       this.isConnected = false;
+      if (this.device && this.device.gatt && this.device.gatt.connected) {
+        this.device.gatt.disconnect();
+      }
+      this.device = null;
+      this.server = null;
+      this.characteristic = null;
       this._emitStatus('disconnected', err.message || 'Connection failed');
-      throw err;
+      if (err.name === 'NotFoundError') {
+        throw new Error('No LED controller was selected. Keep the strip powered on and try again.');
+      }
+      if (err.name === 'SecurityError') {
+        throw new Error('Bluetooth access was blocked. Use Chrome or Edge from http://localhost, then allow Bluetooth access.');
+      }
+      throw new Error(err.message || 'Could not connect to the LED controller.');
     }
   }
 

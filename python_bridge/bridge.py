@@ -11,6 +11,7 @@ import sys
 import time
 import argparse
 import asyncio
+import threading
 import numpy as np
 
 try:
@@ -21,9 +22,10 @@ except ImportError:
 
 try:
     from bleak import BleakClient, BleakScanner
+    from bleak.exc import BleakError
 except ImportError:
     print("[ERROR] 'bleak' library is missing. Install with: pip install -r requirements.txt")
-    BleakClient, BleakScanner = None, None
+    BleakClient, BleakScanner, BleakError = None, None, Exception
 
 
 # Known Lotus Lantern / ELK-BLEDOM GATT UUIDs
@@ -116,6 +118,8 @@ def get_default_wasapi_loopback():
 
 async def scan_for_lotus_devices():
     """Scan nearby BLE devices matching Lotus / ELK prefixes"""
+    if not BleakScanner:
+        raise RuntimeError("Bleak is not installed. Run: pip install -r python_bridge/requirements.txt")
     print("[*] Scanning for Lotus Lantern / ELK-BLEDOM devices (5 seconds)...")
     devices = await BleakScanner.discover(timeout=5.0)
     found = []
@@ -181,7 +185,7 @@ async def stream_audio_to_lights(client, args):
         except asyncio.CancelledError:
             break
         except Exception as e:
-            # BLE packet write hiccup, continue
+            print(f"[WARN] BLE packet write failed: {e}")
             await asyncio.sleep(0.05)
 
 
@@ -212,7 +216,12 @@ async def main():
         print(f"[*] Auto-selected target: {devices[0].name} ({target_address})")
 
     # Step 2: Configure Audio Stream
-    dev_index = args.device_index or get_default_wasapi_loopback()
+    if not sd:
+        raise RuntimeError("sounddevice is not installed. Run: pip install -r python_bridge/requirements.txt")
+
+    dev_index = args.device_index if args.device_index is not None else get_default_wasapi_loopback()
+    if dev_index is None:
+        raise RuntimeError("Could not find a Windows WASAPI loopback device. Use --device-index with a valid output device.")
     print(f"[*] Starting soundcard audio capture on device index: {dev_index}")
 
     stream = sd.InputStream(
@@ -238,8 +247,21 @@ async def main():
             await stream_audio_to_lights(client, args)
 
 
-if __name__ == "__main__":
+def run_bridge():
     try:
         asyncio.run(main())
+    except (BleakError, OSError, RuntimeError) as err:
+        print(f"[ERROR] {err}")
     except KeyboardInterrupt:
         print("\n[*] Exiting Spotus Lantern Bridge.")
+
+
+if __name__ == "__main__":
+    # A fresh thread avoids GUI-hosted Python consoles that initialize the
+    # process's main thread as STA. WinRT can initialize this thread as MTA.
+    if sys.platform == "win32":
+        bridge_thread = threading.Thread(target=run_bridge, name="spotus-ble-bridge")
+        bridge_thread.start()
+        bridge_thread.join()
+    else:
+        run_bridge()
